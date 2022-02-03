@@ -4,26 +4,16 @@
 
 No install
 ```bash
-npx @bizhermit/license [command] <options>
+npx @bizhermit/license <options>
 ```
 
 Install
 ```bash
 npm i -D @bizhermit/license
-npx license [command] <options>
+npx license <options>
 ```
 
-### Command
-
-#### Collect
-
-Collect dependencies license information and print to terminal log.
-
-```bash
-npx @bizhermit/license collect <options>
-```
-
-output:
+Output:
 ```
 - @types/node
 |   version: 17.0.14
@@ -38,51 +28,41 @@ output:
 |   repository: https://github.com/Microsoft/TypeScript.git
 ```
 
-##### Options
+### Options
 
-* `-o [fileName]` write the data to file.
-* `-f ["json"]` write the data format.
-* `--deep` collect dependence package's dependencies.
-* `-max [depth]` collect depth when use --deep option. depth >= 1.
-* `--dev` include development dependencies.
-* `--includeRoot` include root package information.
-* `--includePrivate` include private packages.
+Collect:
 * `-exclude [packageNames]` exclude package names. colon-separete list.
+* `--dev` include development dependencies.
+* `--includePrivate` include private packages.
 
-##### Example
+Validate:
+* `--skipValidate` skip throw error when has error.
+
+Output:
+* `-f ["json"]` write the data format.
+* `-o [fileName]` write the data to file.
+* `--includeRoot` include root package information.
+* `--outputAll` default output is only copyleft license. but this option set to output all.
+* `--outputForce` default write file when write anyone. but this option set to write file.
+
+### Example
 
 ```bash
-# write to file: AUTHORS
-npx @bizhermit/license collect -o ./AUTHORS
+# write to file: LICENSE-ADD
+npx @bizhermit/license -o ./LICENSE-ADD
 
 # wirte json format
-npx @bizhermit/license collect -o ./AUTHORS -f json
+npx @bizhermit/license -o ./LICENSE-ADD -f json
 
 # include devDependencies
-npx @bizhermit/license collect -o ./AUTHORS --dev
+npx @bizhermit/license -o ./LICENSE-ADD --dev
 
 # exclude packages (@types/node and typescript)
-npx @bizhermit/license collect -o ./AUTHORS --dev -exclude @types/node,typescript
+npx @bizhermit/license -o ./LICENSE-ADD --dev --outputAll -exclude @types/node,typescript
+
+# print to terminal that all dependence and devDependence
+npx @bizhermit/license --outputAll --dev
 ```
-
-### Check
-
-Collect dependencies license information and print to terminal log.
-
-```bash
-npx @bizhermit/license check <options>
-```
-
-##### Options
-
-* `-o [fileName]` write the data to file.
-* `-f ["json"]` write the data format.
-* `--deep` collect dependence package's dependencies.
-* `-max [depth]` collect depth when use --deep option. depth >= 1.
-* `--dev` include development dependencies.
-* `--includeRoot` include root package information.
-* `--includePrivate` include private packages.
-* `-exclude [packageNames]` exclude package names. colon-separete list.
 
 ---
 
@@ -93,7 +73,7 @@ Install
 npm i @bizhermit/license
 ```
 
-##### Example
+### Example
 ```ts
 import license from "@bizhermit/license";
 
@@ -104,15 +84,14 @@ const pkg = license.collect(rootDir, {
   excludes: ["@types/node"],    // Array<string> default: []
   includePrivate: true,         // boolean default: false
   includeDevDependencies: true, // boolean default: true
-  deep: true,                   // boolean default: false
-  maxNest: 5,                   // number default: null
 });
 
 console.log(pkg); // comfirm object
 
 // format
-const str = license.format(pkg, "", {
-  includeRoot: true, // boolean default: false
+const str = license.format({
+  pkg,
+  includeRoot: true,
 });
 
 console.log(str); // comfirm str
