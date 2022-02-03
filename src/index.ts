@@ -1,7 +1,7 @@
 import { readdirSync, readFileSync, statSync } from "fs";
 import path from "path";
 
-type Package = {
+type NpmPackage = {
   name: string;
   version?: string;
   license?: string;
@@ -10,47 +10,48 @@ type Package = {
   publisher?: string;
   email?: string;
   url?: string;
-  dependencies?: Array<Package>;
-  devDependencies?: Array<Package>;
+  private?: boolean;
+  dependencies?: Array<NpmPackage>;
+  devDependencies?: Array<NpmPackage>;
 };
 
-type CollectOptions = {
-  excludes?: Array<string>;
-  includePrivate?: boolean;
-  includeDevDependencies?: boolean;
-  deep?: boolean;
-  maxNest?: number;
-};
-
-const collect = (rootDir: string, options?: CollectOptions) => {
-  return collectImpl(rootDir, rootDir, options ?? {}, 0);
-};
-
-const collectImpl = (dir: string, rootDir: string, options: CollectOptions, nest: number) => {
-  const packageJson = JSON.parse(readFileSync(path.join(dir, "package.json")).toString());
-  const pkgName = packageJson.name ?? "";
-  if (nest > 0) {
-    if ((options.excludes?.indexOf(pkgName) ?? -1) >= 0) return null;
-    if (options.includePrivate !== true && packageJson.private === true) return null;
+const findLicenseFileNames = (dirname: string) => {
+  const fileNames = readdirSync(dirname);
+  const rets: Array<string> = [];
+  for (const fileName of fileNames) {
+    const ctx = fileName.match(/^(license|copying|ofl|patents)/i);
+    if (ctx == null) continue;
+    const filePath = path.join(dirname, fileName);
+    if (statSync(filePath).isDirectory()) {
+      readdirSync(filePath).forEach(name => rets.push(path.join(fileName, name)));
+      continue;
+    }
+    rets.push(fileName);
   }
-  if (nest > 1) {
-    if (options.deep !== true) return null;
-    if (options.maxNest != null && nest > options.maxNest) return null;
+  return rets;
+};
+
+type Deps = {[key: string]: string};
+
+const readPackage = (dirname: string) => {
+  const pkgJson = JSON.parse(readFileSync(path.join(dirname, "package.json")).toString());
+
+  // base
+  const pkg: NpmPackage = {
+    name: pkgJson.name ?? "",
+    version: pkgJson.version ?? "",
+    license: pkgJson.license ?? "",
   }
 
-  const pkg: Package = {
-    name: pkgName,
-    version: packageJson.version ?? "",
-    license: packageJson.license ?? "",
-  };
-
-  const repo = packageJson.repository;
+  // repo
+  const repo = pkgJson.repository;
   if (repo != null) {
     if (typeof repo === "string") pkg.repository = repo;
     else if (repo.url) pkg.repository = repo.url ?? "";
   }
 
-  const author = packageJson.author;
+  // author
+  const author = pkgJson.author;
   if (author != null) {
     if (typeof author === "string") {
       const ctx = author.match(/^([^<(]+?)?\s*(?:<([^>(]+?)>)?\s*(?:\(([^)]+?)\)|$)/);
@@ -66,80 +67,142 @@ const collectImpl = (dir: string, rootDir: string, options: CollectOptions, nest
     }
   }
 
-
-  const licenseFiles = findLicenseFileNames(path.join(dir));
+  // license files
+  const licenseFiles = findLicenseFileNames(path.join(dirname));
   if (licenseFiles.length > 0) pkg.licenseFile = licenseFiles;
 
-  const deps = packageJson.dependencies ?? {};
-  Object.keys(deps).forEach(name => {
-    if (pkg.dependencies == null) pkg.dependencies = [];
-    try {
-      const cpkg = collectImpl(path.join(rootDir, "node_modules", name), rootDir, options, nest + 1);
-      if (cpkg == null) return;
-      pkg.dependencies.push(cpkg);
-    } catch (err) {
-      console.log(`# ERR: dependencies ${dir} > ${name}`);
-      throw err;
-    }
+  // deps
+  const deps: Deps = pkgJson.dependencies ?? {};
+  const devDeps: Deps = pkgJson.devDependencies ?? {};
+  return { pkg, deps, devDeps };
+};
+
+type CollectProps = {
+  dirname: string;
+  includeDevDependencies?: boolean;
+  includePrivate?: boolean;
+  excludes?: Array<string>;
+};
+
+const collect = (props: CollectProps) => {
+  const root = readPackage(props.dirname);
+  const packagesDirname = path.join(props.dirname, "node_modules");
+
+  const isExclude = (pkg: NpmPackage) => {
+    if (props.includePrivate !== true && pkg.private) return true;
+    if ((props.excludes?.indexOf(pkg.name) ?? -1) >= 0) return true;
+    return false;
+  };
+
+  const collectRoot = (deps: Deps, pushFunc: (pkg: NpmPackage) => void) => {
+    Object.keys(deps).forEach(depName => {
+      const dep = readPackage(path.join(packagesDirname, depName));
+      if (isExclude(dep.pkg)) return;
+
+      const depMap: {[key: string]: NpmPackage; } = {};
+      const collectDeps = (deps: Deps) => {
+        Object.keys(deps).forEach(name => {
+          let map = depMap[name];
+          if (map != null) return;
+          const cDep = readPackage(path.join(packagesDirname, name));
+          depMap[name] = cDep.pkg;
+          collectDeps(cDep.deps);
+        });
+      };
+      collectDeps(dep.deps);
+
+      Object.keys(depMap).forEach(name => {
+        if (dep.pkg.dependencies == null) dep.pkg.dependencies = [];
+        dep.pkg.dependencies.push(depMap[name]);
+      });
+      pushFunc(dep.pkg);
+    });
+  };
+
+  collectRoot(root.deps, pkg => {
+    if (isExclude(pkg)) return;
+    if (root.pkg.dependencies == null) root.pkg.dependencies = [];
+    root.pkg.dependencies.push(pkg);
   });
 
-  if (options?.includeDevDependencies && nest === 0) {
-    const devDeps = packageJson.devDependencies ?? {};
-    Object.keys(devDeps).forEach(name => {
-      if (pkg.devDependencies == null) pkg.devDependencies = [];
-      try {
-        const cpkg = collectImpl(path.join(rootDir, "node_modules", name), rootDir, options, nest + 1);
-        if (cpkg == null) return;
-        pkg.devDependencies.push(cpkg);
-      } catch (err) {
-        console.log(`# ERR: devDependencies ${dir} > ${name}`);
-        throw err;
-      }
+  if (props.includeDevDependencies) {
+    collectRoot(root.devDeps, pkg => {
+      if (isExclude(pkg)) return;
+      if (root.pkg.devDependencies == null) root.pkg.devDependencies = [];
+      root.pkg.devDependencies.push(pkg);
     });
   }
-  return pkg;
+
+  return root.pkg;
 };
 
-const findLicenseFileNames = (dir: string) => {
-  const fileNames = readdirSync(dir);
-  const rets: Array<string> = [];
-  for (const fn of fileNames) {
-    const ctx = fn.match(/^(license|copying|ofl|patents)/i);
-    if (ctx == null) continue;
-    const ffn = path.join(dir, fn);
-    if (statSync(ffn).isDirectory()) {
-      readdirSync(ffn).forEach(cfn => rets.push(path.join(fn, cfn)));
-      continue;
+type ValidateProps = {
+  pkg: NpmPackage;
+};
+const validate = (props: ValidateProps) => {
+  const messages: Array<{ type: "err" | "warn" | "info"; message: string; }> = [];
+  const validatePackage = (parentPkg: NpmPackage, pkg: NpmPackage, isDev: boolean) => {
+    const l = pkg.license;
+    const messageTarget = `\n  ${parentPkg.name}@${parentPkg.version}: ${parentPkg.license}\n  ${isDev ? "-" : "+"} ${pkg.name}@${pkg.version}: ${pkg.license}`;
+    if (l.match(/^cc0/i)) { // CC0
+    } else if (l.match(/mit/i)) { // MIT
+    } else if (l.match(/isc/i)) { // ISC
+    } else if (l.match(/bsd/i)) { // BSD
+      if (l.match(/4/i)) {
+        messages.push({
+          type: "err",
+          message: `\n# need to acknowledgments${messageTarget}`,
+        });
+      }
+    } else if (l.match(/apache/i)) { // Apache
+      if (l.match(/(1.1|1.0)/i)) {
+        messages.push({
+          type: "err",
+          message: `\n# not supported license${messageTarget}`,
+        });
+      }
+    } else {
+      messages.push({
+        type: "err",
+        message: `\n# not supported license${messageTarget}`
+      });
     }
-    rets.push(fn);
-  }
-  return rets;
+    pkg.dependencies?.forEach(cpkg => validatePackage(pkg, cpkg, false));
+    pkg.devDependencies?.forEach(cpkg => validatePackage(pkg, cpkg, true));
+  };
+  props.pkg.dependencies?.forEach(pkg => validatePackage(props.pkg, pkg, false));
+  props.pkg.devDependencies?.forEach(pkg => validatePackage(props.pkg, pkg, true));
+  return messages;
 };
 
-type ConvertOptions = {
+type FormatProps = {
+  pkg: NpmPackage;
+  format?: string;
   includeRoot?: boolean;
-  onlyNeeded?: boolean;
+  all?: boolean;
 };
 
-const format = (pkg: Package, formatType: string, options?: ConvertOptions) => {
-  const opts = options ?? {};
-  if (formatType === "csv") return formatToCsv(pkg, opts);
-  if (formatType === "json") return formatToJson(pkg, opts);
-  return formatToList(pkg, pkg, opts);
+const format = (props: FormatProps) => {
+  if (props.format === "json") return formatToJson(props);
+  if (props.format === "csv") return formatToCsv(props);
+  return formatToList(props);
 };
 
 const endLine = "\n";
-const formatToList = (pkg: Package, rootPkg: Package, options: ConvertOptions) => {
+
+const isRequiredToAddLicense = (pkg: NpmPackage) => {
+  if (pkg.license.match(/bsd.*4/)) return true;
+  return false;
+};
+
+const formatToList = (props: FormatProps) => {
   let ret = "";
-  const writePkg = (p: Package, nest: number, dev?: boolean) => {
-    const nestStr = "|   ".repeat(Math.max(0, nest - (options?.includeRoot === true ? 0 : 1)));
+  const writePackage = (p: NpmPackage, nest: number, dev?: boolean) => {
+    const nestStr = "|   ".repeat(Math.max(0, nest - (props?.includeRoot === true ? 0 : 1)));
     const append = (str: string) => ret += nestStr + str + endLine;
-    const appendInfo = nest > 0 || options.includeRoot === true;
+    const appendInfo = nest > 0 || props.includeRoot === true;
     const pre = `${dev ? "-" : "+"} `, npre = `|   `;
-    if (options?.onlyNeeded === true) {
-      const checkRet = checkOne(p, rootPkg);
-      if (!checkRet.write) return;
-    }
+    if (props?.all !== true && !isRequiredToAddLicense(p)) return;
     if (appendInfo) {
       append(`${pre}${p.name}`);
       append(`${npre}version: ${p.version}`);
@@ -150,83 +213,29 @@ const formatToList = (pkg: Package, rootPkg: Package, options: ConvertOptions) =
       if (p.url) append(`${npre}url: ${p.url}`);
       if (p.repository) append(`${npre}repository: ${p.repository}`);
     }
-    if (p.dependencies && p.dependencies.length > 0) p.dependencies.forEach(cp => writePkg(cp, nest + 1));
-    if (p.devDependencies && p.devDependencies.length > 0) p.devDependencies.forEach(cp => writePkg(cp, nest + 1, true));
+    if (p.dependencies && p.dependencies.length > 0) p.dependencies.forEach(cp => writePackage(cp, nest + 1));
+    if (p.devDependencies && p.devDependencies.length > 0) p.devDependencies.forEach(cp => writePackage(cp, nest + 1, true));
   };
-  writePkg(pkg, 0);
+  writePackage(props.pkg, 0);
   return ret;
 };
 
-const formatToCsv = (_pkg: Package, _options: ConvertOptions) => {
-  let ret = "";
-  return ret;
+const formatToJson = (props: FormatProps) => {
+  return "";
 };
 
-const formatToJson = (pkg: Package, options: ConvertOptions) => {
-  if (options.includeRoot === true) return JSON.stringify(pkg, null, 2);
+const formatToCsv = (props: FormatProps) => {
+  if (props.includeRoot === true) return JSON.stringify(props.pkg, null, 2);
   return JSON.stringify({
-    ...(pkg.dependencies ?? {}),
-    ...(pkg.devDependencies ?? {}),
+    ...(props.pkg.dependencies ?? {}),
+    ...(props.pkg.devDependencies ?? {}),
   }, null, 2);
-};
-
-type CheckOptions = {
-  disclose?: boolean;
-  deep?: boolean;
-};
-
-const check = (pkg: Package, options?: CheckOptions) => {
-  const messages: Array<{ type: "err" | "warn"; message: string; }> = [];
-  checkImpl(pkg, pkg, messages, options ?? {}, 0);
-  return messages;
-};
-
-const checkImpl = (pkg: Package, rootPkg: Package, messages: Array<{ type: "err" | "warn"; message: string; }>, options: CheckOptions, nest: number) => {
-  if (nest > 0) checkOne(pkg, rootPkg, messages);
-  pkg.dependencies?.forEach(p => {
-    checkImpl(p, rootPkg, messages, options, nest + 1);
-  });
-  pkg.devDependencies?.forEach(p => {
-    checkImpl(p, rootPkg, messages, options, nest + 1);
-  });
-};
-
-const checkOne = (pkg: Package, _rootPkg: Package, messages?: Array<{ type: "err" | "warn"; message: string; }>) => {
-  // TODO: check
-  const l = pkg.license, msgs: Array<{ type: "err" | "warn"; message: string; }> = [];
-  const ret = {
-    write: false,
-  };
-  if (l.match(/^cc0/i)) {
-    // CC0
-  } else if (l.match(/mit/i)) {
-    // MIT
-  } else if (l.match(/isc/i)) {
-    // ISC
-  } else if (l.match(/bsd/i)) {
-    // BSD
-    if (l.match(/4/i)) {
-      msgs.push({ type: "warn", message: `need acknowledgments: ${pkg.name} ${pkg.license}` });
-      ret.write = true;
-    } else if (l.match(/3/i)) msgs.push({ type: "warn", message: `not allowed acknowledgments: ${pkg.name} ${pkg.license}` });
-  } else if (l.match(/apache/i)) {
-    // Apache
-  } else if (l.match(/gnu/i)) {
-    // GNU
-    msgs.push({ type: "err", message: `${pkg.name} use ${pkg.license}` });
-  } else {
-    msgs.push({ type: "err", message: `${pkg.name} should not use: ${pkg.license}` });
-  }
-  if (messages) msgs.forEach(msg => messages.push(msg));
-  return ret;
 };
 
 const license = {
   collect,
+  validate,
   format,
-  formatToList,
-  formatToJson,
-  check,
 };
 
 export default license;

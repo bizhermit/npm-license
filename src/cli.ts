@@ -6,68 +6,60 @@ import license from ".";
 
 let returnMessage = "";
 
-const execute = (check?: boolean) => {
-  const includeDevDependencies = process.argv.findIndex(v => v === "--dev") >= 0;
-  const deep = process.argv.findIndex(v => v === "--deep") >= 0;
-  const argMaxNestIndex = process.argv.findIndex(v => v === "-max");
-  const includePrivate = process.argv.findIndex(v => v === "--includePrivate") >= 0;
-  const excludes = [];
-  const argExcludesIndex = process.argv.findIndex(v => v === "-exclude");
-  if (argExcludesIndex >= 0) {
-    const str = process.argv[argExcludesIndex + 1];
-    str.split(",").forEach(n => excludes.push(n));
-  }
-  let maxNest: number = undefined;
-  if (argMaxNestIndex >= 0) maxNest = Math.max(1, Number(process.argv[argMaxNestIndex + 1] || 0));
-  const pkg = license.collect(process.cwd(), { deep, includeDevDependencies, maxNest, includePrivate, excludes });
-  if (check) {
-    const messages = license.check(pkg);
-    messages.forEach(item => {
-      if (item.type === "warn") {
-        console.log(`# ${item.type} : ${item.message}`);
-        return;
-      }
-      returnMessage += `\n# ${item.type} : ${item.message}`;
-    });
-  }
-  const argFormatIndex = process.argv.findIndex(v => v === "-f");
-  let format = "";
-  if (argFormatIndex >= 0) {
-    switch (process.argv[argFormatIndex + 1]) {
-      case "csv":
-        format = "csv";
-        break;
-      case "json":
-        format = "json";
-        break;
-      default:
-        format = "";
-        break;
-    }
-  }
-  const argOutputIndex = process.argv.findIndex(v => v === "-o");
-  const includeRoot = process.argv.findIndex(v => v === "--includeRoot") >= 0;
-  const str = license.format(pkg, format, { includeRoot, onlyNeeded: check });
-  if (argOutputIndex < 0) {
-    console.log(str);
-    return;
-  }
-  let outputFileName = "";
-  outputFileName = process.argv[argOutputIndex + 1] || outputFileName;
-  if (outputFileName === "" || outputFileName.startsWith("-")) throw new Error(`not valid dest name: ${outputFileName}`);
-  if (str.length === 0) return;
-  writeFileSync(path.join(process.cwd(), outputFileName), str);
+const getArgFlag = (key: string) => {
+  return process.argv.findIndex(v => v === key) >= 0;
+};
+const getArgV = (key: string) => {
+  const index = process.argv.findIndex(v => v === key);
+  if (index < 0) return null;
+  const val = process.argv[index + 1];
+  if (val.startsWith("-")) return null;
+  return val;
 };
 
-switch (process.argv[2]) {
-  case "collect":
-    execute();
-    break;
-  case "check":
-    execute(true);
-    break;
-  default:
-    break;
-}
+const main = () => {
+  const excludes = [];
+  const excludesStr = getArgV("-exclude");
+  if (excludesStr) excludesStr.split(",").forEach(n => excludes.push(n));
+  const pkg = license.collect({
+    dirname: process.cwd(),
+    includeDevDependencies: getArgFlag("--dev"),
+    includePrivate: getArgFlag("--includePrivate"),
+    excludes,
+  });
 
-if (returnMessage) throw new Error(returnMessage);
+  const messages = license.validate({
+    pkg,
+  });
+
+  messages.forEach(item => {
+    if (item.type === "info") {
+      process.stdout.write(`\n#info:: ${item.message}`);
+      return;
+    }
+    if (item.type === "warn") {
+      process.stdout.write(`\nwarn:: ${item.message}`);
+      return;
+    }
+    process.stderr.write(`\nerr :: ${item.message}`);
+    returnMessage += `${item.message}\n`;
+  });
+  if (getArgFlag("--skipValidate")) returnMessage = "";
+
+  const outputStr = license.format({
+    pkg,
+    format: getArgV("-f"),
+    includeRoot: getArgFlag("--includeRoot"),
+    all: getArgFlag("--outputAll"),
+  });
+  const outputFileName = getArgV("-o");
+  if (outputFileName == null) {
+    process.stdout.write("\n" + outputStr + "\n");
+    return;
+  }
+  if (outputStr.length > 0 || getArgFlag("--outputForce")) writeFileSync(path.join(process.cwd(), outputFileName), outputStr);
+};
+
+main();
+
+if (returnMessage) throw "ERROR: \n" + returnMessage;
