@@ -6,7 +6,7 @@ import license from ".";
 
 let returnMessage = "";
 
-const collect = (check?: boolean) => {
+const execute = (check?: boolean) => {
   const includeDevDependencies = process.argv.findIndex(v => v === "--dev") >= 0;
   const deep = process.argv.findIndex(v => v === "--deep") >= 0;
   const argMaxNestIndex = process.argv.findIndex(v => v === "-max");
@@ -61,10 +61,10 @@ const collect = (check?: boolean) => {
 
 switch (process.argv[2]) {
   case "collect":
-    collect();
+    execute();
     break;
   case "check":
-    collect(true);
+    execute(true);
     break;
   default:
     break;
