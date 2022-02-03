@@ -155,10 +155,6 @@ const validate = (props: ValidateProps) => {
         message: `\n# need to acknowledgments${messageTarget}`,
       });
     } else if (l.match(/apache.*2/i)) { // Apache-2.0
-      messages.push({
-        type: "err",
-        message: `\n# complex license${messageTarget}`,
-      });
     } else if (l.match(/apache.*1/i)) { // Apache-1.0
       messages.push({
         type: "err",
