@@ -118,23 +118,26 @@ const findLicenseFileNames = (dir: string) => {
 
 type ConvertOptions = {
   includeRoot?: boolean;
+  auto?: boolean;
 };
 
 const format = (pkg: Package, formatType: string, options?: ConvertOptions) => {
   const opts = options ?? {};
   if (formatType === "csv") return formatToCsv(pkg, opts);
   if (formatType === "json") return formatToJson(pkg, opts);
-  return formatToList(pkg, opts);
+  return formatToList(pkg, pkg, opts);
 };
 
 const endLine = "\n";
-const formatToList = (pkg: Package, options: ConvertOptions) => {
+const formatToList = (pkg: Package, rootPkg: Package, options: ConvertOptions) => {
   let ret = "";
   const writePkg = (p: Package, nest: number, dev?: boolean) => {
     const nestStr = "|   ".repeat(Math.max(0, nest - (options?.includeRoot === true ? 0 : 1)));
     const append = (str: string) => ret += nestStr + str + endLine;
     const appendInfo = nest > 0 || options.includeRoot === true;
     const pre = `${dev ? "-" : "+"} `, npre = `|   `;
+    const checkRet = checkOne(p, rootPkg);
+    if (!checkRet.write) return;
     if (appendInfo) {
       append(`${pre}${p.name}`);
       append(`${npre}version: ${p.version}`);
@@ -165,11 +168,63 @@ const formatToJson = (pkg: Package, options: ConvertOptions) => {
   }, null, 2);
 };
 
+type CheckOptions = {
+  disclose?: boolean;
+  deep?: boolean;
+};
+
+const check = (pkg: Package, options?: CheckOptions) => {
+  const messages: Array<{ type: "err" | "warn"; message: string; }> = [];
+  checkImpl(pkg, pkg, messages, options ?? {}, 0);
+  return messages;
+};
+
+const checkImpl = (pkg: Package, rootPkg: Package, messages: Array<{ type: "err" | "warn"; message: string; }>, options: CheckOptions, nest: number) => {
+  if (nest > 0) checkOne(pkg, rootPkg, messages);
+  pkg.dependencies?.forEach(p => {
+    checkImpl(p, rootPkg, messages, options, nest + 1);
+  });
+  pkg.devDependencies?.forEach(p => {
+    checkImpl(p, rootPkg, messages, options, nest + 1);
+  });
+};
+
+const checkOne = (pkg: Package, _rootPkg: Package, messages?: Array<{ type: "err" | "warn"; message: string; }>) => {
+  // TODO: check
+  const l = pkg.license, msgs: Array<{ type: "err" | "warn"; message: string; }> = [];
+  const ret = {
+    write: false,
+  };
+  if (l.match(/^cc0/i)) {
+    // CC0
+  } else if (l.match(/mit/i)) {
+    // MIT
+  } else if (l.match(/isc/i)) {
+    // ISC
+  } else if (l.match(/bsd/i)) {
+    // BSD
+    if (l.match(/4/i)) {
+      msgs.push({ type: "warn", message: `need acknowledgments: ${pkg.name} ${pkg.license}` });
+      ret.write = true;
+    } else if (l.match(/3/i)) msgs.push({ type: "warn", message: `not allowed acknowledgments: ${pkg.name} ${pkg.license}` });
+  } else if (l.match(/apache/i)) {
+    // Apache
+  } else if (l.match(/gnu/i)) {
+    // GNU
+    msgs.push({ type: "err", message: `${pkg.name} use ${pkg.license}` });
+  } else {
+    msgs.push({ type: "err", message: `${pkg.name} should not use: ${pkg.license}` });
+  }
+  if (messages) msgs.forEach(msg => messages.push(msg));
+  return ret;
+};
+
 const license = {
   collect,
   format,
   formatToList,
   formatToJson,
+  check,
 };
 
 export default license;

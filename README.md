@@ -65,6 +65,27 @@ npx @bizhermit/license collect -o ./AUTHORS --dev
 npx @bizhermit/license collect -o ./AUTHORS --dev -exclude @types/node,typescript
 ```
 
+### Check
+
+Collect dependencies license information and print to terminal log.
+
+```bash
+npx @bizhermit/license check <options>
+```
+
+##### Options
+
+* `-o [fileName]` write the data to file.
+* `-f ["json"]` write the data format.
+* `--deep` collect dependence package's dependencies.
+* `-max [depth]` collect depth when use --deep option. depth >= 1.
+* `--dev` include development dependencies.
+* `--includeRoot` include root package information.
+* `--includePrivate` include private packages.
+* `-exclude [packageNames]` exclude package names. colon-separete list.
+
+---
+
 ## Module
 
 Install

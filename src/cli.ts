@@ -4,15 +4,9 @@ import { writeFileSync } from "fs";
 import path from "path";
 import license from ".";
 
-const create = () => {
-  // TODO:
-};
+let returnMessage = "";
 
-const check = () => {
-  // TODO:
-};
-
-const collect = () => {
+const collectImpl = () => {
   const includeDevDependencies = process.argv.findIndex(v => v === "--dev") >= 0;
   const deep = process.argv.findIndex(v => v === "--deep") >= 0;
   const argMaxNestIndex = process.argv.findIndex(v => v === "-max");
@@ -25,7 +19,21 @@ const collect = () => {
   }
   let maxNest: number = undefined;
   if (argMaxNestIndex >= 0) maxNest = Math.max(1, Number(process.argv[argMaxNestIndex + 1] || 0));
-  const pkg = license.collect(process.cwd(), { deep, includeDevDependencies, maxNest, includePrivate, excludes });
+  return license.collect(process.cwd(), { deep, includeDevDependencies, maxNest, includePrivate, excludes });
+}
+
+const collect = (check?: boolean) => {
+  const pkg = collectImpl();
+  if (check) {
+    const messages = license.check(pkg);
+    messages.forEach(item => {
+      if (item.type === "warn") {
+        console.log(`# ${item.type} : ${item.message}`);
+        return;
+      }
+      returnMessage += `\n# ${item.type} : ${item.message}`;
+    });
+  }
   const argFormatIndex = process.argv.findIndex(v => v === "-f");
   let format = "";
   if (argFormatIndex >= 0) {
@@ -43,7 +51,7 @@ const collect = () => {
   }
   const argOutputIndex = process.argv.findIndex(v => v === "-o");
   const includeRoot = process.argv.findIndex(v => v === "--includeRoot") >= 0;
-  const str = license.format(pkg, format, { includeRoot });
+  const str = license.format(pkg, format, { includeRoot, auto: check });
   if (argOutputIndex < 0) {
     console.log(str);
     return;
@@ -58,12 +66,11 @@ switch (process.argv[2]) {
   case "collect":
     collect();
     break;
-  case "create":
-    create();
-    break;
   case "check":
-    check();
+    collect(true);
     break;
   default:
     break;
 }
+
+if (returnMessage) throw new Error(returnMessage);
