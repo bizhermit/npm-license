@@ -55,6 +55,7 @@ const collect = (check?: boolean) => {
   let outputFileName = "";
   outputFileName = process.argv[argOutputIndex + 1] || outputFileName;
   if (outputFileName === "" || outputFileName.startsWith("-")) throw new Error(`not valid dest name: ${outputFileName}`);
+  if (str.length === 0) return;
   writeFileSync(path.join(process.cwd(), outputFileName), str);
 };
 
