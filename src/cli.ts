@@ -6,7 +6,7 @@ import license from ".";
 
 let returnMessage = "";
 
-const collectImpl = () => {
+const collect = (check?: boolean) => {
   const includeDevDependencies = process.argv.findIndex(v => v === "--dev") >= 0;
   const deep = process.argv.findIndex(v => v === "--deep") >= 0;
   const argMaxNestIndex = process.argv.findIndex(v => v === "-max");
@@ -19,11 +19,7 @@ const collectImpl = () => {
   }
   let maxNest: number = undefined;
   if (argMaxNestIndex >= 0) maxNest = Math.max(1, Number(process.argv[argMaxNestIndex + 1] || 0));
-  return license.collect(process.cwd(), { deep, includeDevDependencies, maxNest, includePrivate, excludes });
-}
-
-const collect = (check?: boolean) => {
-  const pkg = collectImpl();
+  const pkg = license.collect(process.cwd(), { deep, includeDevDependencies, maxNest, includePrivate, excludes });
   if (check) {
     const messages = license.check(pkg);
     messages.forEach(item => {
@@ -51,7 +47,7 @@ const collect = (check?: boolean) => {
   }
   const argOutputIndex = process.argv.findIndex(v => v === "-o");
   const includeRoot = process.argv.findIndex(v => v === "--includeRoot") >= 0;
-  const str = license.format(pkg, format, { includeRoot, auto: check });
+  const str = license.format(pkg, format, { includeRoot, onlyNeeded: check });
   if (argOutputIndex < 0) {
     console.log(str);
     return;

@@ -118,7 +118,7 @@ const findLicenseFileNames = (dir: string) => {
 
 type ConvertOptions = {
   includeRoot?: boolean;
-  auto?: boolean;
+  onlyNeeded?: boolean;
 };
 
 const format = (pkg: Package, formatType: string, options?: ConvertOptions) => {
@@ -136,8 +136,10 @@ const formatToList = (pkg: Package, rootPkg: Package, options: ConvertOptions) =
     const append = (str: string) => ret += nestStr + str + endLine;
     const appendInfo = nest > 0 || options.includeRoot === true;
     const pre = `${dev ? "-" : "+"} `, npre = `|   `;
-    const checkRet = checkOne(p, rootPkg);
-    if (!checkRet.write) return;
+    if (options?.onlyNeeded === true) {
+      const checkRet = checkOne(p, rootPkg);
+      if (!checkRet.write) return;
+    }
     if (appendInfo) {
       append(`${pre}${p.name}`);
       append(`${npre}version: ${p.version}`);
