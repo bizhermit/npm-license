@@ -5,6 +5,7 @@ type NpmPackage = {
   name: string;
   version?: string;
   license?: string;
+  licenses?: Array<string>;
   licenseFile?: Array<string>;
   repository?: string;
   publisher?: string;
@@ -40,8 +41,29 @@ const readPackage = (dirname: string) => {
   const pkg: NpmPackage = {
     name: pkgJson.name ?? "",
     version: pkgJson.version ?? "",
-    license: pkgJson.license ?? "",
+  };
+
+  // license/license files
+  const license = pkgJson.license;
+  if (license != null) {
+    if (typeof license === "string") pkg.license = license;
+    else if (license.type) pkg.license = license.type ?? "";
+    else pkg.license = "";
+  } else {
+    const licenses = pkgJson.licenses;
+    if (Array.isArray(licenses)) {
+      licenses.forEach(lItem => {
+        if (pkg.licenses == null) pkg.licenses = [];
+        if (typeof lItem === "string") pkg.licenses.push(lItem);
+        else if (lItem.type) pkg.licenses.push(lItem.type ?? "");
+        else pkg.licenses.push("");
+      });
+      if (pkg.licenses && pkg.licenses.length > 0) pkg.license = pkg.licenses.join(",");
+    }
   }
+  const licenseFiles = findLicenseFileNames(path.join(dirname));
+  if (licenseFiles.length > 0) pkg.licenseFile = licenseFiles;
+
 
   // repo
   const repo = pkgJson.repository;
@@ -66,10 +88,6 @@ const readPackage = (dirname: string) => {
       if (author.url) pkg.url = author.url;
     }
   }
-
-  // license files
-  const licenseFiles = findLicenseFileNames(path.join(dirname));
-  if (licenseFiles.length > 0) pkg.licenseFile = licenseFiles;
 
   // deps
   const deps: Deps = pkgJson.dependencies ?? {};
