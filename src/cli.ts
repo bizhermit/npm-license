@@ -62,4 +62,4 @@ const main = () => {
 
 main();
 
-if (returnMessage) throw "ERROR: \n" + returnMessage;
+if (returnMessage) throw new Error("\n" + returnMessage);

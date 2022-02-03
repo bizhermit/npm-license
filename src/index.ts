@@ -147,20 +147,33 @@ const validate = (props: ValidateProps) => {
     if (l.match(/^cc0/i)) { // CC0
     } else if (l.match(/mit/i)) { // MIT
     } else if (l.match(/isc/i)) { // ISC
-    } else if (l.match(/bsd/i)) { // BSD
-      if (l.match(/4/i)) {
-        messages.push({
-          type: "err",
-          message: `\n# need to acknowledgments${messageTarget}`,
-        });
-      }
-    } else if (l.match(/apache/i)) { // Apache
-      if (l.match(/(1.1|1.0)/i)) {
-        messages.push({
-          type: "err",
-          message: `\n# not supported license${messageTarget}`,
-        });
-      }
+    } else if (l.match(/bsd*.3/i)) { // BSD-3-Clause
+    } else if (l.match(/bsd*.2/i)) { // BSD-2-Clause
+    } else if (l.match(/(bsd|bsd*.4)/i)) { // BSD/BSD-4-Clause
+      messages.push({
+        type: "err",
+        message: `\n# need to acknowledgments${messageTarget}`,
+      });
+    } else if (l.match(/apache.*2/i)) { // Apache-2.0
+      messages.push({
+        type: "err",
+        message: `\n# complex license${messageTarget}`,
+      });
+    } else if (l.match(/apache.*1/i)) { // Apache-1.0
+      messages.push({
+        type: "err",
+        message: `\n# complex license${messageTarget}`,
+      });
+    } else if (l.match(/mpl/i)) { // GPL
+      messages.push({
+        type: "err",
+        message: `\n# complex license${messageTarget}`,
+      });
+    } else if (l.match(/mpl/i)) { // MPL
+      messages.push({
+        type: "err",
+        message: `\n# complex license${messageTarget}`,
+      });
     } else {
       messages.push({
         type: "err",
