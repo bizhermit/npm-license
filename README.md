@@ -2,12 +2,14 @@
 
 Check complex license used at dependencies.  
 This tool pass license:
-- MIT
-- ISC
-- CC0
-- BSD-3-Clause
-- BSD-2-Clause
-- Apache-2.0
+* MIT
+* ISC
+* CC0
+* BSD-3-Clause
+* BSD-2-Clause
+* Apache-2.0
+
+---
 
 ## CLI
 
