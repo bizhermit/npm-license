@@ -169,8 +169,14 @@ const validate = (props: ValidateProps) => {
         message: `\n# unkown or not extract license${messageTarget}`,
       });
     } else if (l.match(/^cc0/i)) { // CC0
+    } else if (l.match(/^cc.*4/i)) { // CC-BY-4.0
+      messages.push({
+        type: "err",
+        message: `\n# need to acknowledgments${messageTarget}`,
+      });
     } else if (l.match(/mit/i)) { // MIT
     } else if (l.match(/isc/i)) { // ISC
+    } else if (l.match(/(0bsd|bsd*.0)/i)) { // 0BSD
     } else if (l.match(/bsd*.3/i)) { // BSD-3-Clause
     } else if (l.match(/bsd*.2/i)) { // BSD-2-Clause
     } else if (l.match(/(bsd|bsd*.4)/i)) { // BSD/BSD-4-Clause
@@ -224,18 +230,30 @@ const format = (props: FormatProps) => {
 const endLine = "\n";
 
 const isRequiredToAddLicense = (pkg: NpmPackage) => {
-  if (pkg.license.match(/bsd.*4/)) return true;
+  if (pkg.license.match(/bsd.*4/i)) return true;
+  if (pkg.license.match(/^cc.*4/i)) return true;
   return false;
 };
 
 const formatToList = (props: FormatProps) => {
-  let ret = "";
   const writePackage = (p: NpmPackage, nest: number, dev?: boolean) => {
+    let cRet = "";
+    if (p.dependencies && p.dependencies.length > 0) {
+      p.dependencies.forEach(cp => {
+        cRet += writePackage(cp, nest + 1);
+      });
+    }
+    if (p.devDependencies && p.devDependencies.length > 0) {
+      p.devDependencies.forEach(cp => {
+        cRet += writePackage(cp, nest + 1, true);
+      });
+    }
+    let ret = "";
+    if (cRet === "" && !isRequiredToAddLicense(p) && props.all !== true) return ret;
     const nestStr = "|   ".repeat(Math.max(0, nest - (props?.includeRoot === true ? 0 : 1)));
     const append = (str: string) => ret += nestStr + str + endLine;
     const appendInfo = nest > 0 || props.includeRoot === true;
     const pre = `${dev ? "-" : "+"} `, npre = `|   `;
-    if (props?.all !== true && !isRequiredToAddLicense(p)) return;
     if (appendInfo) {
       append(`${pre}${p.name}`);
       append(`${npre}version: ${p.version}`);
@@ -246,23 +264,23 @@ const formatToList = (props: FormatProps) => {
       if (p.url) append(`${npre}url: ${p.url}`);
       if (p.repository) append(`${npre}repository: ${p.repository}`);
     }
-    if (p.dependencies && p.dependencies.length > 0) p.dependencies.forEach(cp => writePackage(cp, nest + 1));
-    if (p.devDependencies && p.devDependencies.length > 0) p.devDependencies.forEach(cp => writePackage(cp, nest + 1, true));
+    ret += cRet;
+    return ret;
   };
-  writePackage(props.pkg, 0);
-  return ret;
+  return writePackage(props.pkg, 0);
 };
 
 const formatToJson = (props: FormatProps) => {
-  return "";
-};
-
-const formatToCsv = (props: FormatProps) => {
   if (props.includeRoot === true) return JSON.stringify(props.pkg, null, 2);
   return JSON.stringify({
     ...(props.pkg.dependencies ?? {}),
     ...(props.pkg.devDependencies ?? {}),
   }, null, 2);
+};
+
+const formatToCsv = (props: FormatProps) => {
+  // TODO:
+  return formatToList(props);
 };
 
 const license = {

@@ -41,13 +41,15 @@ Output:
 
 ### Options
 
+* `--quiet` not print messages.
+
 Collect:
 * `-exclude [packageNames]` exclude package names. colon-separete list.
 * `--dev` include development dependencies.
 * `--includePrivate` include private packages.
 
 Validate:
-* `--skipValidate` skip throw error when has error.
+* `--returnError` throw error when has error.
 
 Output:
 * `-f ["json"]` write the data format.

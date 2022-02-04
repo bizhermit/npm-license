@@ -18,6 +18,7 @@ const getArgV = (key: string) => {
 };
 
 const main = () => {
+  const quiet = getArgFlag("--quiet");
   const excludes = [];
   const excludesStr = getArgV("-exclude");
   if (excludesStr) excludesStr.split(",").forEach(n => excludes.push(n));
@@ -34,17 +35,17 @@ const main = () => {
 
   messages.forEach(item => {
     if (item.type === "info") {
-      process.stdout.write(`\n#info:: ${item.message}`);
+      if (!quiet) process.stdout.write(`\n#info:: ${item.message}`);
       return;
     }
     if (item.type === "warn") {
-      process.stdout.write(`\nwarn:: ${item.message}`);
+      if (!quiet) process.stdout.write(`\nwarn:: ${item.message}`);
       return;
     }
-    process.stderr.write(`\nerr :: ${item.message}`);
+    if (!quiet) process.stderr.write(`\nerr :: ${item.message}`);
     returnMessage += `${item.message}\n`;
   });
-  if (getArgFlag("--skipValidate")) returnMessage = "";
+  if (!getArgFlag("--returnError")) returnMessage = "";
 
   const outputStr = license.format({
     pkg,
@@ -54,7 +55,7 @@ const main = () => {
   });
   const outputFileName = getArgV("-o");
   if (outputFileName == null) {
-    process.stdout.write("\n" + outputStr + "\n");
+    if (!quiet) process.stdout.write("\n" + outputStr + "\n");
     return;
   }
   if (outputStr.length > 0 || getArgFlag("--outputForce")) writeFileSync(path.join(process.cwd(), outputFileName), outputStr);
