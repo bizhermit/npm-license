@@ -20,7 +20,7 @@ const findLicenseFileNames = (dirname: string) => {
   const fileNames = readdirSync(dirname);
   const rets: Array<string> = [];
   for (const fileName of fileNames) {
-    const ctx = fileName.match(/^(license|copying|ofl|patents)/i);
+    const ctx = fileName.match(/^(license|licence|copying|ofl|patents)/i);
     if (ctx == null) continue;
     const filePath = path.join(dirname, fileName);
     if (statSync(filePath).isDirectory()) {
@@ -44,13 +44,13 @@ const readPackage = (dirname: string) => {
   };
 
   // license/license files
-  const license = pkgJson.license;
+  const license = pkgJson.license || pkgJson.licence;
   if (license != null) {
     if (typeof license === "string") pkg.license = license;
     else if (license.type) pkg.license = license.type ?? "";
     else pkg.license = "";
   } else {
-    const licenses = pkgJson.licenses;
+    const licenses = pkgJson.licenses || pkgJson.licences;
     if (Array.isArray(licenses)) {
       licenses.forEach(lItem => {
         if (pkg.licenses == null) pkg.licenses = [];
