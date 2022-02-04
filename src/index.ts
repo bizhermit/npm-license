@@ -59,6 +59,7 @@ const readPackage = (dirname: string) => {
         else pkg.licenses.push("");
       });
       if (pkg.licenses && pkg.licenses.length > 0) pkg.license = pkg.licenses.join(",");
+      else pkg.license = "";
     }
   }
   const licenseFiles = findLicenseFileNames(path.join(dirname));
@@ -162,7 +163,12 @@ const validate = (props: ValidateProps) => {
   const validatePackage = (parentPkg: NpmPackage, pkg: NpmPackage, isDev: boolean) => {
     const l = pkg.license;
     const messageTarget = `\n  ${parentPkg.name}@${parentPkg.version}: ${parentPkg.license}\n  ${isDev ? "-" : "+"} ${pkg.name}@${pkg.version}: ${pkg.license}`;
-    if (l.match(/^cc0/i)) { // CC0
+    if (l == null || l.length === 0)  {
+      messages.push({
+        type: "err",
+        message: `\n# unkown or not extract license${messageTarget}`,
+      });
+    } else if (l.match(/^cc0/i)) { // CC0
     } else if (l.match(/mit/i)) { // MIT
     } else if (l.match(/isc/i)) { // ISC
     } else if (l.match(/bsd*.3/i)) { // BSD-3-Clause
