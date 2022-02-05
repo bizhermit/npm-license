@@ -135,7 +135,6 @@ type CollectProps = {
   dirname: string;
   includeDevDependencies?: boolean;
   includePrivate?: boolean;
-  excludes?: Array<string>;
   absoluteLicenseFilePath?: boolean;
 };
 
@@ -144,7 +143,6 @@ const collect = (props: CollectProps, messagesRef: Array<Message>) => {
 
   const isExclude = (pkg: NpmPackage) => {
     if (props.includePrivate !== true && pkg.private) return true;
-    if ((props.excludes?.indexOf(pkg.name) ?? -1) >= 0) return true;
     return false;
   };
 
@@ -193,60 +191,42 @@ const collect = (props: CollectProps, messagesRef: Array<Message>) => {
 
 type ValidateProps = {
   pkg: NpmPackage;
+  excludes: Array<string>;
 };
 const validate = (props: ValidateProps, messagesRef: Array<Message>) => {
   const messages: Array<Message> = messagesRef ?? [];
   const validatePackage = (parentPkg: NpmPackage, pkg: NpmPackage, isDev: boolean) => {
     const messageTarget = `\n  ${parentPkg.name}@${parentPkg.version}: ${parentPkg.licenses.join(",")}\n  ${isDev ? "-" : "+"} ${pkg.name}@${pkg.version}: ${pkg.licenses.join(",")}`;
+    const addError = (message: string) => {
+      if ((props.excludes?.indexOf(pkg.name) ?? -1) >= 0) return false;
+      messages.push({ type: "err", message });
+      return true;
+    }
     if (pkg.licenses.length === 0) {
-      messages.push({
-        type: "err",
-        message: `\n# use unkown or not extract license${messageTarget}`,
-      });
+      addError(`\n# use unkown or not extract license${messageTarget}`);
     } else {
       for (const l of pkg.licenses) {
         if (l == null || l.length === 0)  {
-          messages.push({
-            type: "err",
-            message: `\n# use unkown or not extract license${messageTarget}`,
-          });
+          addError(`\n# use unkown or not extract license${messageTarget}`);
         } else if (l.match(/^cc0/i)) { // CC0
         } else if (l.match(/^cc.*4/i)) { // CC-BY-4.0
-          messages.push({
-            type: "err",
-            message: `\n# use need to acknowledgments license${messageTarget}`,
-          });
+          addError(`\n# use need to acknowledgments license${messageTarget}`);
         } else if (l.match(/mit/i)) { // MIT
         } else if (l.match(/isc/i)) { // ISC
         } else if (l.match(/(0bsd|bsd*.0)/i)) { // 0BSD
         } else if (l.match(/bsd*.3/i)) { // BSD-3-Clause
         } else if (l.match(/bsd*.2/i)) { // BSD-2-Clause
         } else if (l.match(/(bsd|bsd*.4)/i)) { // BSD/BSD-4-Clause
-          messages.push({
-            type: "err",
-            message: `\n# use need to acknowledgments license${messageTarget}`,
-          });
+          addError(`\n# use need to acknowledgments license${messageTarget}`);
         } else if (l.match(/apache.*2/i)) { // Apache-2.0
         } else if (l.match(/apache.*1/i)) { // Apache-1.0
-          messages.push({
-            type: "err",
-            message: `\n# use complex license${messageTarget}`,
-          });
+          addError(`\n# use complex license${messageTarget}`);
         } else if (l.match(/mpl/i)) { // GPL
-          messages.push({
-            type: "err",
-            message: `\n# use complex license${messageTarget}`,
-          });
+          addError(`\n# use complex license${messageTarget}`);
         } else if (l.match(/mpl/i)) { // MPL
-          messages.push({
-            type: "err",
-            message: `\n# use complex license${messageTarget}`,
-          });
+          addError(`\n# use complex license${messageTarget}`);
         } else {
-          messages.push({
-            type: "err",
-            message: `\n# use not supported license${messageTarget}`
-          });
+          addError(`\n# use not supported license${messageTarget}`);
         }
       }
     }

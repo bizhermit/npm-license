@@ -27,10 +27,9 @@ const main = () => {
     dirname: process.cwd(),
     includeDevDependencies: getArgFlag("--dev"),
     includePrivate: getArgFlag("--includePrivate"),
-    excludes,
   }, messages);
 
-  license.validate({ pkg }, messages);
+  license.validate({ pkg, excludes }, messages);
 
   messages.forEach(item => {
     if (item.type === "info") {

@@ -45,12 +45,12 @@ Output:
 * `--quiet` not print messages.
 
 Collect:
-* `-exclude [packageNames]` exclude package names. colon-separete list.
 * `--dev` include development dependencies.
 * `--includePrivate` include private packages.
 
 Validate:
 * `--returnError` throw error when has error.
+* `-exclude [packageNames]` exclude package names. colon-separete list.
 
 Output:
 * `-f ["json"]` write the data format.
@@ -62,17 +62,17 @@ Output:
 ### Example
 
 ```bash
-# write to file: LICENSE-ADD
-npx @bizhermit/license -o ./LICENSE-ADD
+# write to file: CREDIT
+npx @bizhermit/license -o ./CREDIT
 
 # wirte json format
-npx @bizhermit/license -o ./LICENSE-ADD -f json
+npx @bizhermit/license -o ./CREDIT -f json
 
 # include devDependencies
-npx @bizhermit/license -o ./LICENSE-ADD --dev
+npx @bizhermit/license -o ./CREDIT --dev
 
 # exclude packages (@types/node and typescript)
-npx @bizhermit/license -o ./LICENSE-ADD --dev --outputAll -exclude @types/node,typescript
+npx @bizhermit/license -o ./CREDIT --dev --outputAll -exclude @types/node,typescript
 
 # print to terminal that all dependence and devDependence
 npx @bizhermit/license --outputAll --dev
