@@ -1,12 +1,13 @@
 # npm License tool
 
-Check complex license used at dependencies.  
+Check using complex license npm package at dependencies.  
 This tool pass license:
 * MIT
 * ISC
 * CC0
 * BSD-3-Clause
 * BSD-2-Clause
+* 0BSD
 * Apache-2.0
 
 ---
@@ -29,12 +30,12 @@ Output:
 - @types/node
 |   version: 17.0.14
 |   license: MIT
-|   licenseFile: ./node_modules/@types/node/LICENSE
+|   licenseFile: /node_modules/@types/node/LICENSE
 |   repository: https://github.com/DefinitelyTyped/DefinitelyTyped.git
 - typescript
 |   version: 4.5.5
 |   license: Apache-2.0
-|   licenseFile: ./node_modules/typescript/LICENSE.txt
+|   licenseFile: /node_modules/typescript/LICENSE.txt
 |   publisher: Microsoft Corp.
 |   repository: https://github.com/Microsoft/TypeScript.git
 ```
@@ -93,19 +94,17 @@ import license from "@bizhermit/license";
 const rootDir = process.cwd();
 
 // collect
-const pkg = license.collect(rootDir, {
+const pkg = license.collect({
+  dirname: rootDir,
   excludes: ["@types/node"],    // Array<string> default: []
   includePrivate: true,         // boolean default: false
   includeDevDependencies: true, // boolean default: true
 });
 
-console.log(pkg); // comfirm object
-
 // format
 const str = license.format({
-  pkg,
+  pkg, // collected value
   includeRoot: true,
+  all: true,
 });
-
-console.log(str); // comfirm str
 ```
