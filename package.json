@@ -19,7 +19,8 @@
   ],
   "scripts": {
     "dev": "node bin/cli",
-    "build": "npx rimraf bin CREDIT && npx tsc -p src/tsconfig.json && npx rimraf bin/cli.d.ts && npx minifier bin && node bin/cli -o CREDIT --returnError",
+    "license": "npx rimraf CREDIT && node bin/cli -o CREDIT --returnError",
+    "build": "npx rimraf bin && npx tsc -p src/tsconfig.json && npx rimraf bin/cli.d.ts && npx minifier bin && npm run license",
     "prepare": "npm run build && git add -A && git diff --quiet --exit-code --cached || git commit -m \"build v%npm_package_version%\" && git push origin",
     "postpublish": "git tag && git push origin tags/v%npm_package_version%"
   },
