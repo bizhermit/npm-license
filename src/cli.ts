@@ -22,16 +22,15 @@ const main = () => {
   const excludes = [];
   const excludesStr = getArgV("-exclude");
   if (excludesStr) excludesStr.split(",").forEach(n => excludes.push(n));
+  const messages = [];
   const pkg = license.collect({
     dirname: process.cwd(),
     includeDevDependencies: getArgFlag("--dev"),
     includePrivate: getArgFlag("--includePrivate"),
     excludes,
-  });
+  }, messages);
 
-  const messages = license.validate({
-    pkg,
-  });
+  license.validate({ pkg }, messages);
 
   messages.forEach(item => {
     if (item.type === "info") {
