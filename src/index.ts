@@ -84,7 +84,7 @@ const readPackage = (name: string | null, dirname: string, messagesRef: Array<Me
         return;
       }
       if (Array.isArray(obj)) {
-        readLicenseObject(obj);
+        obj.forEach(o => readLicenseObject(o));
         return;
       }
       if (typeof obj.type === "string" && obj.type.length > 0) pkg.licenses.push(obj.type);
