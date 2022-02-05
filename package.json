@@ -15,7 +15,8 @@
   "main": "bin/index",
   "bin": "bin/cli.js",
   "files": [
-    "bin"
+    "bin",
+    "CREDIT"
   ],
   "scripts": {
     "dev": "node bin/cli",
