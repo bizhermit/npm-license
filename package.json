@@ -32,6 +32,9 @@
     "rimraf": "^3.0.2",
     "typescript": "^4.5.5"
   },
+  "dependencies": {
+    "@bizhermit/cli-sdk": "^1.0.1"
+  },
   "keywords": [
     "bizhermit",
     "license",
