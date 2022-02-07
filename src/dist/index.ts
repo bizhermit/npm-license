@@ -37,7 +37,7 @@ const findLicenseFileNames = (dirname: string) => {
 type Deps = {[key: string]: string};
 
 const readPackage = (name: string | null, dirname: string, messagesRef: Array<Message>, collectProps: CollectProps) => {
-  let pkgJson: {[key: string]: any}, dirPath = dirname, searchedDirnames = [];
+  let pkgJson: {[key: string]: any} | null = null, dirPath = dirname, searchedDirnames = [];
   try {
     if (name == null) {
       pkgJson = JSON.parse(readFileSync(path.join(dirname, "package.json")).toString());
@@ -140,6 +140,10 @@ type CollectProps = {
 
 const collect = (props: CollectProps, messagesRef: Array<Message>) => {
   const root = readPackage(null, props.dirname, messagesRef, props);
+  if (root == null) {
+    messagesRef.push({ type: "err", message: "not found root package.json" });
+    return;
+  }
 
   const isExclude = (pkg: NpmPackage) => {
     if (props.includePrivate !== true && pkg.private) return true;
@@ -149,7 +153,7 @@ const collect = (props: CollectProps, messagesRef: Array<Message>) => {
   const collectRoot = (deps: Deps, pushFunc: (pkg: NpmPackage) => void) => {
     Object.keys(deps).forEach(depName => {
       const dep = readPackage(depName, props.dirname, messagesRef, props);
-      if (isExclude(dep.pkg)) return;
+      if (dep == null || isExclude(dep.pkg)) return;
 
       const depMap: {[key: string]: NpmPackage; } = {};
       const collectDeps = (deps: Deps, parentPkg: NpmPackage) => {

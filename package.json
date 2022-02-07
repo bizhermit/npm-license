@@ -12,16 +12,17 @@
   },
   "author": "Senda Ryoichi <rsenda@bizhermit.com> (https://bizhermit.com)",
   "license": "MIT",
-  "main": "bin/index",
-  "bin": "bin/cli.js",
+  "main": "dist/index",
+  "bin": "bin/cli",
   "files": [
     "bin",
+    "dist",
     "CREDIT"
   ],
   "scripts": {
-    "dev": "node bin/cli",
+    "dev": "node bin/cli --outputAll --dev",
     "license": "npx rimraf CREDIT && node bin/cli -o CREDIT --returnError",
-    "build": "npx rimraf bin && npx tsc -p src/tsconfig.json && npx rimraf bin/cli.d.ts && npx minifier bin && npm run license",
+    "build": "npx rimraf bin dist && npx tsc -p src/tsconfig.json && npx rimraf bin/cli.d.ts && npx minifier bin && npx minifier dist && npm run license",
     "prepare": "npm run build && git add -A && git diff --quiet --exit-code --cached || git commit -m \"build v%npm_package_version%\" && git push origin",
     "postpublish": "git tag && git push origin tags/v%npm_package_version%"
   },

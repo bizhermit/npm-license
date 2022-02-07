@@ -2,7 +2,7 @@
 
 import { writeFileSync } from "fs";
 import path from "path";
-import license from ".";
+import license from "../dist";
 
 let returnMessage = "";
 
@@ -11,23 +11,30 @@ const getArgFlag = (key: string) => {
 };
 const getArgV = (key: string) => {
   const index = process.argv.findIndex(v => v === key);
-  if (index < 0) return null;
+  if (index < 0) return undefined;
   const val = process.argv[index + 1];
-  if (val.startsWith("-")) return null;
+  if (val.startsWith("-")) return undefined;
   return val;
 };
 
 const main = () => {
   const quiet = getArgFlag("--quiet");
-  const excludes = [];
+  const excludes: Array<string> = [];
   const excludesStr = getArgV("-exclude");
   if (excludesStr) excludesStr.split(",").forEach(n => excludes.push(n));
-  const messages = [];
+  const messages: Array<any> = [];
   const pkg = license.collect({
     dirname: process.cwd(),
     includeDevDependencies: getArgFlag("--dev"),
     includePrivate: getArgFlag("--includePrivate"),
   }, messages);
+  if (pkg == null) {
+    messages.forEach(item => {
+      if (!quiet) process.stderr.write(`\nerr :: ${item.message}`);
+      returnMessage += `${item.message}\n`;
+    });
+    return;
+  }
 
   license.validate({ pkg, excludes }, messages);
 

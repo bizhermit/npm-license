@@ -6,11 +6,13 @@
     "resolveJsonModule": true,
     "forceConsistentCasingInFileNames": true,
     "strict": true,
-    "strictNullChecks": false,
-    "noImplicitAny": false,
+    "strictNullChecks": true,
+    "noImplicitAny": true,
     "skipLibCheck": true,
-    "outDir": "../bin",
+    "rootDir": "./",
+    "outDir": "../",
     "declaration": true
   },
-  "include": ["**/*.ts"]
+  "exclude": ["../bin", "../dist"],
+  "include": ["bin/**/*.ts", "dist/**/*.ts"]
 }
