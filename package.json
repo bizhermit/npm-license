@@ -1,6 +1,6 @@
 {
   "name": "@bizhermit/license",
-  "version": "1.0.9",
+  "version": "1.0.10",
   "description": "npm license tool",
   "repository": {
     "type": "git",
