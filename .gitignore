@@ -1,5 +1,5 @@
 .vscode
-package-lock.json
 node_modules
-/bin
-/dist
+/package
+/dev/dist
+/dev/bin
