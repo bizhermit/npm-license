@@ -1,6 +1,6 @@
 #! /usr/bin/env node
 
-import { getKeyArg, hasKeyArg } from "@bizhermit/cli-sdk";
+import { getKeyArg, hasKeyArg } from "@bizhermit/cli-utils";
 import { writeFileSync } from "fs";
 import path from "path";
 import license from "../dist";

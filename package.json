@@ -1,6 +1,6 @@
 {
   "name": "@bizhermit/license",
-  "version": "2.0.0-rc.1",
+  "version": "2.0.0-rc.2",
   "description": "npm license tool",
   "repository": {
     "type": "git",
@@ -16,6 +16,7 @@
     "build": "npx rimraf package && npx tsc -p src/tsconfig.json && npx rimraf src/bin/cli.d.ts && npx minifier package && npm run license && npx npm-package-utils pack"
   },
   "devDependencies": {
+    "@bizhermit/cli-utils": "^1.0.0-rc.0",
     "@bizhermit/minifier": "^2.0.0-rc.0",
     "@bizhermit/npm-package-utils": "^0.0.0-rc.7",
     "rimraf": "^3.0.2",
