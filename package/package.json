@@ -1,0 +1,36 @@
+{
+  "name": "@bizhermit/license",
+  "version": "2.0.0-rc.2",
+  "description": "npm license tool",
+  "keywords": [
+    "bizhermit",
+    "license",
+    "npm license",
+    "license collect"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/bizhermit/npm-license.git"
+  },
+  "bugs": {
+    "url": "https://github.com/bizhermit/npm-license/issues"
+  },
+  "author": "Senda Ryoichi <rsenda@bizhermit.com> (https://bizhermit.com)",
+  "homepage": "",
+  "license": "MIT",
+  "main": "dist/index",
+  "bin": "bin/cli.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "bin",
+    "dist",
+    "CREDIT"
+  ],
+  "dependencies": {
+    "@bizhermit/cli-utils": "^1.0.0-rc.0"
+  },
+  "devDependencies": {
+    "@types/node": "^18.6.3",
+    "typescript": "^4.7.4"
+  }
+}
